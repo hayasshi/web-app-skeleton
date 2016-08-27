@@ -18,7 +18,7 @@ object Main extends App {
   val applicationName = config.getString("application.name")
 
   Class.forName("org.h2.Driver")
-  ConnectionPool.singleton(s"jdbc:h2:mem:$applicationName;", "ra", "ra", ConnectionPoolSettings(8, 32, 1000, "select 1 as one"))
+  ConnectionPool.singleton(s"jdbc:h2:file:./target/$applicationName;", "sa", "sa", ConnectionPoolSettings(8, 32, 1000, "select 1 as one"))
 
   implicit val system = ActorSystem(applicationName, config)
   implicit val materializer = ActorMaterializer()

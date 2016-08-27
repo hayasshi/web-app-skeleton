@@ -12,9 +12,12 @@
 
 [scalikejdbc](https://github.com/scalikejdbc/scalikejdbc)
 
+### DB migration tool
+
+[sbt-flyway-plugin](https://flywaydb.org/documentation/sbt/)
+
 ### TODO
 
-- Add flyway plugin
 - Add memcached client skeleton
 - Add redis client skeleton
 − Add HTML response pattern

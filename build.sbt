@@ -1,3 +1,5 @@
+import java.nio.file.Files
+
 name := "web-app-skeleton"
 
 organization := "com.example"
@@ -37,4 +39,19 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % "test",
   "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion,
   "com.typesafe.akka" %% "akka-http-spray-json-experimental" % akkaVersion
+)
+
+flywayUrl := "jdbc:h2:file:./target/myApp"
+flywayUser := "sa"
+flywayPassword := "sa"
+//flywaySchemas := Seq("myApp")
+flywayLocations := Seq(s"filesystem:${baseDirectory.value}/src/main/resources/db/")
+parallelExecution in Test := false
+testOptions in Test ++= Seq(
+  Tests.Setup { () =>
+    flywayMigrate.value
+  },
+  Tests.Cleanup { () =>
+    Files.deleteIfExists(new File(s"${baseDirectory.value}/target/myApp.mv.db").toPath)
+  }
 )
