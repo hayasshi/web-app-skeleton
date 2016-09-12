@@ -34,7 +34,9 @@ object Main extends App {
   val memcachedPort = config.getInt("application.memcached.port")
   val memcachedClient = Memcached(Configuration(s"$memcachedHost:$memcachedPort"))(system.dispatcher)
 
-  val todoService = new TodoService(new TodoDaoOnRDB, memcachedClient)
+  val nonBlockingEc = system.dispatcher
+  val blockingEc = system.dispatchers.lookup("blocking-io-dispatcher")
+  val todoService = new TodoService(new TodoDaoOnRDB, memcachedClient)(nonBlockingEc, blockingEc)
 
   val routes = {
     new ApiRoute(todoService).route

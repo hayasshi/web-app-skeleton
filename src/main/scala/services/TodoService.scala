@@ -1,30 +1,45 @@
 package services
 
-import akka.NotUsed
-import akka.stream.scaladsl.Flow
 import dao.rdb.TodoDaoOnRDB
 import dto.Todo
 import org.joda.time.DateTime
 import scalikejdbc._
+import services.cache.MemcachedClient
+import shade.memcached.Memcached
 
-trait TodoService extends ServiceBase {
+import scala.concurrent.{ ExecutionContext, Future }
 
-  val todoDao: TodoDaoOnRDB
+class TodoService(val todoDao: TodoDaoOnRDB, val memcached: Memcached)(val nonBlockingEc: ExecutionContext, val blockingEc: ExecutionContext)
+    extends ServiceBase
+    with MemcachedClient {
+  import routes.json.TodoJsonProtocol._
+  import spray.json._
 
-  val listFlow: Flow[NotUsed, Seq[Todo], NotUsed] = blockingFlow(Flow[NotUsed].map(_ => todoDao.findAll), "listFlow")
+  def getList: Future[Seq[Todo]] = {
+    def getListFromDb(ec: ExecutionContext): Future[Seq[Todo]] = Future(todoDao.findAll)(ec)
 
-  val createFlow: Flow[(String, DateTime), Boolean, NotUsed] = blockingFlow(Flow[(String, DateTime)].map {
-    case (text, limitAt) => DB.localTx { implicit session =>
+    memcached.get[String]("todolist").flatMap {
+      case Some(str) =>
+        Future.successful(JsString(str).convertTo[Seq[Todo]])
+      case None      =>
+        val f = getListFromDb(blockingEc)
+        f.foreach(list => setToMemcached("todolist", list.toJson.compactPrint, 600))(nonBlockingEc)
+        f
+    }(nonBlockingEc)
+  }
+
+  def create(text: String, limitAt: DateTime): Future[Boolean] = Future {
+    DB.localTx { implicit session =>
       val count = todoDao.create(text, limitAt)
       count == 1
     }
-  }, "createFlow")
+  }(blockingEc)
 
-  val updateFlow: Flow[(Long, String, DateTime), Boolean, NotUsed] = blockingFlow(Flow[(Long, String, DateTime)].map {
-    case (id, text, limitAt) => DB.localTx { implicit session =>
+  def update(id: Long, text: String, limitAt: DateTime): Future[Boolean] = Future {
+    DB.localTx { implicit session =>
       val count = todoDao.update(id, text, limitAt)
       count == 1
     }
-  }, "updateFlow")
+  }(blockingEc)
 
 }

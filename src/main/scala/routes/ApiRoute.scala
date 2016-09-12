@@ -1,13 +1,11 @@
 package routes
 
-import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.Materializer
-import akka.stream.scaladsl.{ Sink, Source }
 import dto.Todo
 import org.joda.time.DateTime
 import services.TodoService
@@ -29,8 +27,7 @@ class ApiRoute(todoService: TodoService)(implicit system: ActorSystem, materiali
   val route = pathPrefix("api") {
     path("todo") {
       get {
-        val resultFuture = Source.single(NotUsed).via(todoService.listFlow).map(TodoListJson).runWith(Sink.head)
-        onSuccess(resultFuture)(complete(_))
+        onSuccess(todoService.getList)(complete(_))
 
         // use actor base logic
 //        import akka.pattern._
@@ -42,15 +39,13 @@ class ApiRoute(todoService: TodoService)(implicit system: ActorSystem, materiali
       } ~
       post {
         entity(as[WriteTodoJson]) { json =>
-          val resultFuture = Source.single((json.text, json.limit_at)).via(todoService.createFlow).runWith(Sink.head)
-          onSuccess(resultFuture)(_ => complete(HttpResponse(Accepted)))
+          onSuccess(todoService.create(json.text, json.limit_at))(_ => complete(HttpResponse(Accepted)))
         }
       } ~
       path(LongNumber) { id =>
         put {
           entity(as[WriteTodoJson]) { json =>
-            val resultFuture = Source.single((id, json.text, json.limit_at)).via(todoService.updateFlow).runWith(Sink.head)
-            onSuccess(resultFuture)(_ => complete(HttpResponse(Accepted)))
+            onSuccess(todoService.update(id, json.text, json.limit_at))(_ => complete(HttpResponse(Accepted)))
           }
         }
       }
