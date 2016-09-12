@@ -28,7 +28,7 @@ scalacOptions ++= Seq(
   "-Xfuture"
 )
 
-val akkaVersion = "2.4.9"
+val akkaVersion = "2.4.10"
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
   "org.scalikejdbc" %% "scalikejdbc" % "2.4.2",
@@ -38,7 +38,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http-core" % akkaVersion,
   "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % "test",
   "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion,
-  "com.typesafe.akka" %% "akka-http-spray-json-experimental" % akkaVersion
+  "com.typesafe.akka" %% "akka-http-spray-json-experimental" % akkaVersion,
+  "com.bionicspirit" %% "shade" % "1.7.4"
 )
 
 flywayUrl := "jdbc:h2:file:./target/myApp"
