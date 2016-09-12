@@ -3,13 +3,14 @@ package services
 import dao.rdb.TodoDaoOnRDB
 import dto.Todo
 import org.joda.time.DateTime
+import redis.RedisClient
 import scalikejdbc._
 import services.cache.MemcachedClient
 import shade.memcached.Memcached
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-class TodoService(val todoDao: TodoDaoOnRDB, val memcached: Memcached)(val nonBlockingEc: ExecutionContext, val blockingEc: ExecutionContext)
+class TodoService(val todoDao: TodoDaoOnRDB, val memcached: Memcached, val redis: RedisClient)(val nonBlockingEc: ExecutionContext, val blockingEc: ExecutionContext)
     extends ServiceBase
     with MemcachedClient {
   import routes.json.TodoJsonProtocol._
@@ -24,6 +25,7 @@ class TodoService(val todoDao: TodoDaoOnRDB, val memcached: Memcached)(val nonBl
       case None      =>
         val f = getListFromDb(blockingEc)
         f.foreach(list => setToMemcached("todolist", list.toJson.compactPrint, 600))(nonBlockingEc)
+        f.foreach(list => redis.set("redis::todolist", list.toJson.compactPrint))(nonBlockingEc)
         f
     }(nonBlockingEc)
   }
@@ -33,6 +35,7 @@ class TodoService(val todoDao: TodoDaoOnRDB, val memcached: Memcached)(val nonBl
       val count = todoDao.create(text, limitAt)
       count == 1
     }
+
   }(blockingEc)
 
   def update(id: Long, text: String, limitAt: DateTime): Future[Boolean] = Future {

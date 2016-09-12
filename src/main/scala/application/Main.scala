@@ -9,6 +9,7 @@ import com.typesafe.config.ConfigFactory
 import dao.rdb.TodoDaoOnRDB
 import net.spy.memcached.ConnectionFactoryBuilder.Protocol
 import net.spy.memcached.{ AddrUtil, ConnectionFactoryBuilder, MemcachedClient }
+import redis.RedisClient
 import routes.ApiRoute
 import scalikejdbc.{ ConnectionPool, ConnectionPoolSettings }
 import services.TodoService
@@ -29,14 +30,17 @@ object Main extends App {
   implicit val materializer = ActorMaterializer()
   implicit val executer = system.dispatcher
 
-  // memcached settings
+  // memcached client settings
   val memcachedHost = config.getString("application.memcached.host")
   val memcachedPort = config.getInt("application.memcached.port")
   val memcachedClient = Memcached(Configuration(s"$memcachedHost:$memcachedPort"))(system.dispatcher)
 
+  // redis client settings
+  val redisClient = RedisClient()
+
   val nonBlockingEc = system.dispatcher
   val blockingEc = system.dispatchers.lookup("blocking-io-dispatcher")
-  val todoService = new TodoService(new TodoDaoOnRDB, memcachedClient)(nonBlockingEc, blockingEc)
+  val todoService = new TodoService(new TodoDaoOnRDB, memcachedClient, redisClient)(nonBlockingEc, blockingEc)
 
   val routes = {
     new ApiRoute(todoService).route

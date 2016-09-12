@@ -39,7 +39,10 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % "test",
   "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion,
   "com.typesafe.akka" %% "akka-http-spray-json-experimental" % akkaVersion,
-  "com.bionicspirit" %% "shade" % "1.7.4"
+  "com.bionicspirit" %% "shade" % "1.7.4",
+  ("com.github.etaty" %% "rediscala" % "1.6.0").excludeAll(
+    ExclusionRule(organization = "com.typesafe.akka")
+  )
 )
 
 flywayUrl := "jdbc:h2:file:./target/myApp"
