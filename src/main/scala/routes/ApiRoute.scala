@@ -31,6 +31,14 @@ class ApiRoute(todoService: TodoService)(implicit system: ActorSystem, materiali
       get {
         val resultFuture = Source.single(NotUsed).via(todoService.listFlow).map(TodoListJson).runWith(Sink.head)
         onSuccess(resultFuture)(complete(_))
+
+        // use actor base logic
+//        import akka.pattern._
+//        import scala.concurrent.duration._
+//        implicit val timeout = 5.seconds
+//        val todoServiceActor = system.actorOf(TodoServiceActor.props)
+//        val rf = (todoServiceActor ? GetList).mapTo[ListGot]
+//        onSuccess(rf)(got => complete(got.list))
       } ~
       post {
         entity(as[WriteTodoJson]) { json =>
