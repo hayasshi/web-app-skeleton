@@ -5,14 +5,13 @@ import dto.Todo
 import org.joda.time.DateTime
 import redis.RedisClient
 import scalikejdbc._
-import services.cache.MemcachedClient
 import shade.memcached.Memcached
 
+import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 
 class TodoService(val todoDao: TodoDaoOnRDB, val memcached: Memcached, val redis: RedisClient)(val nonBlockingEc: ExecutionContext, val blockingEc: ExecutionContext)
-    extends ServiceBase
-    with MemcachedClient {
+    extends ServiceBase {
   import routes.json.TodoJsonProtocol._
   import spray.json._
 
@@ -24,7 +23,7 @@ class TodoService(val todoDao: TodoDaoOnRDB, val memcached: Memcached, val redis
         Future.successful(JsString(str).convertTo[Seq[Todo]])
       case None      =>
         val f = getListFromDb(blockingEc)
-        f.foreach(list => setToMemcached("todolist", list.toJson.compactPrint, 600))(nonBlockingEc)
+        f.foreach(list => memcached.set("todolist", list.toJson.compactPrint, 600.seconds))(nonBlockingEc)
         f.foreach(list => redis.set("redis::todolist", list.toJson.compactPrint))(nonBlockingEc)
         f
     }(nonBlockingEc)
