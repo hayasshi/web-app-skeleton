@@ -1,14 +1,9 @@
 package application
 
-import java.net.InetSocketAddress
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
-import dao.rdb.TodoDaoOnRDB
-import net.spy.memcached.ConnectionFactoryBuilder.Protocol
-import net.spy.memcached.{ AddrUtil, ConnectionFactoryBuilder, MemcachedClient }
 import redis.RedisClient
 import routes.ApiRoute
 import scalikejdbc.{ ConnectionPool, ConnectionPoolSettings }
@@ -40,7 +35,7 @@ object Main extends App {
 
   val nonBlockingEc = system.dispatcher
   val blockingEc = system.dispatchers.lookup("blocking-io-dispatcher")
-  val todoService = new TodoService(new TodoDaoOnRDB, memcachedClient, redisClient)(nonBlockingEc, blockingEc)
+  val todoService = new TodoService(memcachedClient, redisClient)(nonBlockingEc, blockingEc)
 
   val routes = {
     new ApiRoute(todoService).route
