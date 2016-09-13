@@ -15,3 +15,11 @@
 ### DB migration tool
 
 [sbt-flyway-plugin](https://flywaydb.org/documentation/sbt/)
+
+### Memcached client library
+
+[Shade](https://github.com/alexandru/shade)
+
+### Redis client library
+
+[rediscala](https://github.com/etaty/rediscala) on Akka-2.4
