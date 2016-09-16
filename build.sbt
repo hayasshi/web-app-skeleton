@@ -32,7 +32,8 @@ val akkaVersion = "2.4.10"
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
   "org.scalikejdbc" %% "scalikejdbc" % "2.4.2",
-  "com.h2database" %  "h2" % "1.4.192",
+  "com.h2database" %  "h2" % "1.4.192" % "test",
+  "mysql" % "mysql-connector-java" % "5.1.39",
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   "com.typesafe.akka" %% "akka-http-core" % akkaVersion,
