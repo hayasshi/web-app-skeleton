@@ -18,29 +18,50 @@ object Main extends App {
   val config = ConfigFactory.load()
   val applicationName = config.getString("application.name")
 
-  Class.forName("org.h2.Driver")
-  ConnectionPool.singleton(s"jdbc:h2:file:./target/$applicationName;", "sa", "sa", ConnectionPoolSettings(8, 32, 1000, "select 1 as one"))
-
   implicit val system = ActorSystem(applicationName, config)
   implicit val materializer = ActorMaterializer()
-  implicit val executer = system.dispatcher
 
+  // ////
+  // ExecutionContext
+  implicit val nonBlockingEc = system.dispatcher
+  val blockingEc = system.dispatchers.lookup("application.blocking-io-dispatcher")
+
+  // ////
+  // DB access settings
+  val driverClass = config.getString("application.rdb.driver")
+  val dbUrl = config.getString("application.rdb.url")
+  val dbUser = config.getString("application.rdb.user")
+  val dbPass = config.getString("application.rdb.pass")
+  val initialPoolSize = config.getInt("application.rdb.initial-pool-size")
+  val maxPoolSize = config.getInt("application.rdb.max-pool-size")
+  val connectionTimeout = config.getDuration("application.rdb.connection-timeout").toMillis
+  Class.forName(driverClass)
+  ConnectionPool.singleton(dbUrl, dbUser, dbPass, ConnectionPoolSettings(initialPoolSize, maxPoolSize, connectionTimeout))
+
+  // ////
   // memcached client settings
   val memcachedHost = config.getString("application.memcached.host")
   val memcachedPort = config.getInt("application.memcached.port")
-  val memcachedClient = Memcached(Configuration(s"$memcachedHost:$memcachedPort"))(system.dispatcher)
+  val memcachedClient = Memcached(Configuration(s"$memcachedHost:$memcachedPort"))(nonBlockingEc)
 
+  // ////
   // redis client settings
-  val redisClient = RedisClient()
+  val redisHost = config.getString("application.redis.host")
+  val redisPort = config.getInt("application.redis.port")
+  val redisClient = RedisClient(redisHost, redisPort)
 
-  val nonBlockingEc = system.dispatcher
-  val blockingEc = system.dispatchers.lookup("blocking-io-dispatcher")
+  // ////
+  // service class settings
   val todoService = new TodoService(memcachedClient, redisClient)(nonBlockingEc, blockingEc)
 
+  // ////
+  // route settings
   val routes = {
     new ApiRoute(todoService).route
   }
 
+  // ////
+  // http server binding
   val host = config.getString("application.host")
   val port = config.getInt("application.port")
   val bindingFuture = Http().bindAndHandle(routes, host, port).foreach(println)
